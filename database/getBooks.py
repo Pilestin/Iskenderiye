@@ -30,7 +30,7 @@ def main():
                 
             response = requests.get(image_url)
             img = Image.open(BytesIO(response.content))
-            img.save(f"./Library/images/img_{book_num}.png",format="PNG")
+            img.save(f"./Library/database/images/img_{book_num}.png",format="PNG")
             book_num+=1       
             book = getBookInfos(book_url)
             print(book)
