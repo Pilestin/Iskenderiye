@@ -1,0 +1,65 @@
+
+VERİTABANI KOLONLARI
+--------------------
+
+Kitap : 
+
+    - Id
+    - ISBN
+    - Adı
+    - Yazar
+    - Yayınevi
+    - Çevirmen
+    - Yayın tarihi
+    - Orjinal Adı
+    - Dil
+    - Sayfa sayısı
+    - Cilt Tipi
+    - Boyut
+    - Resim
+    - Kategori , category_id
+
+Kullanıcı : 
+
+    - id-numara
+    - unvan
+    - Ad
+    - Soyad
+    - Adres
+    - Telefon numarası
+    - E-posta
+    - Cinsiyet
+    - Doğum Tarihi
+
+Ödünç : 
+
+    - Id 
+    - Kullanıcı id : user_id
+    - Kitap id  : book_id
+    - ödünç tarihi
+    - dönüş tarihi
+
+Personel : 
+
+    - id-numara
+    - unvan
+    - Ad
+    - Soyad
+    - Adres
+    - Telefon numarası
+    - E-posta
+    - Cinsiyet
+    - Doğum Tarihi
+
+Kategori : 
+
+    - cId
+    - Adı
+    - Açıklama
+
+Sistem : 
+
+    - sId
+    - başlık
+    - açıklama
+

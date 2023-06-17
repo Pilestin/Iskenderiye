@@ -4,9 +4,20 @@ from PIL import Image
 from io import BytesIO
 from pathlib import Path
 
+import mysql.connector
 
-def main():
-    i = 1
+connection = mysql.connector.connect(
+    host     = "localhost",     
+    user     = "root",
+    password = "112358",
+    database = "kutuphane"
+)
+
+cursor = connection.cursor()
+
+    
+def scrap_books():
+    sayac = 100
     current_page = 1
     last_page    = 5
     book_num     = 1
@@ -17,45 +28,83 @@ def main():
         soup = BeautifulSoup(web,'html.parser')
 
         all = soup.find_all("div" , {"class": "image"})
-        images = []
-        Books = []
         
         # o sayfadaki tüm kitaplar elimizde. 
         for element in all:
             
+            # sayfadaki tek tek tüm kitapların url bilgileri diğer fonksiyona verilerek ayrıştırma işlemi yapılacak. 
             
-            # sayfadaki tek tek tüm kitapların url bilgileri diğer fonksiyona verilerek ayrıştırma yapılır. 
             book_url  = element.find("a",{"class": "pr-img-link"})["href"]
             image_url = element.find("a",{"class": "pr-img-link"}).find_next()["src"]  # image içerisinde olduğu için find_next demek zorunda kaldık
                 
-            response = requests.get(image_url)
-            img = Image.open(BytesIO(response.content))
-            img.save(f"./Library/database/images/img_{book_num}.png",format="PNG")
-            book_num+=1       
+            img_content = requests.get(image_url).content         
+            img = Image.open(BytesIO(img_content))
+            
+            path = Path(f"images/img_{book_num}.png")
+            img.save(path,format="PNG")
+                  
+            
             book = getBookInfos(book_url)
             print(book)
-            #saveBook(book)
+            saveBook(book,path)
             
+            if book_num == sayac:
+                break
                 
-            # IPython.display.Image("https://img.kitapyurdu.com/v1/getimage/fn:11631602/wi:100", width = 250)
+            book_num+=1 
             
-            break
-            
-        
         current_page +=1
-        break
+               
     
-def saveBook(book: dict):
-    return 
+def saveBook(book: dict, path):
+     
+    # kitap bilgilerini alıp veritabanına kaydedeceğiz.
+    
+    secilenler = ["ISBN", "Adı", "Yazar", "Yayınevi", "Çevirmen", "Yayın Tarihi", "Orijinal Adı", "Dil", "Sayfa Sayısı", "Cilt Tipi", "Boyut", "Kategori"]
+    
+    with open(path, 'rb') as file:
+        byte_data = file.read()
+    
+    # kitap bilgileri bir dictionary içerisinde tutuluyor.  
+    # verileri tek tek alalım.
+    
+    for key in secilenler:
+        # eğer seçmek istediklerimiz gelen bilgilerde yoksa onun yerine None yazalım.
+        if key not in book.keys():
+            book[key] = None
+        # varsa bir şey yapmaya gerek yok.  
+    
+    
+    try : 
+        isbn        = book["ISBN"]
+        ad          = book["Adı"]
+        yazar       = book["Yazar"] 
+        yayinevi    = book["Yayınevi"]
+        cevirmen    = book["Çevirmen"] 
+        tarihi      = book["Yayın Tarihi"]
+        orjinal     = book["Orijinal Adı"]
+        dil         = book["Dil"]   
+        sayfa       = book["Sayfa Sayısı"] 
+        cilt        = book["Cilt Tipi"]
+        boyut       = book["Boyut"] 
+        kategori    = 'book["Kategori"]'
+    except KeyError as e:
+        print("Bir kitap bilgisi eksik")
+        print(e)
+    
+    sql = "INSERT INTO kitaplar (ISBN, Adı, Yazar, Yayınevi, Çevirmen, Yayın_Tarihi, Orijinal_Adı, Dil, Sayfa_Sayısı, Cilt_Tipi, Boyut, Resim, Kategori) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    values = (isbn, ad , yazar, yayinevi, cevirmen, tarihi, orjinal, dil, sayfa, cilt, boyut, byte_data, kategori )
+    cursor.execute(sql, values)
 
-def getBookPics(image_url,book_num):
-    """
-    response = requests.get(image_url)
-    img = Image.open(BytesIO(response.content))
-    img.save(f"./Library/images/img_{book_num}.png",format="PNG")
-    book_num+=1 
-    """
-    
+    try:
+        connection.commit()
+        print(f"{cursor.rowcount} tane kayıt eklendi")
+        print(f"son eklenen kaydın id : {cursor.lastrowid}")
+    except mysql.connector.Error as e:
+        print("Error :",e)
+    finally:
+        print("işlem başarılı")
+
 
 def getBookInfos(url):
     
@@ -65,8 +114,8 @@ def getBookInfos(url):
     
     
     tempBook = {}
-    web  = requests.get(url).content
-    soup = BeautifulSoup(web,'html.parser')
+    web  = requests.get(url).text
+    soup = BeautifulSoup(web,'html.parser', from_encoding= 'utf-8')
     
     # KİTAP ADI 
     header = soup.find("div",{"class":"pr_header"}).text.strip()
@@ -90,8 +139,32 @@ def getBookInfos(url):
         # bu satırlar arasında dolanıp satır bilgilerini key value şeklinde (sayfa : 200) ayırıp dictionary nesnemize atacağız.  
         key = td.find("td")
         value = key.find_next("td")
-        tempBook[key.text] = value.text
+        tempBook[key.text.replace(":", "")] = value.text
     
     return tempBook    
     
+    
+def main():
+    scrap_books()
+    
+    # veritabanı bağlantısı test et 
+    #cursor.execute("SELECT * FROM kitaplar")
+    
+    
 main()
+
+
+"""
+'Adı': 'İnsanlığımı Yitirirken', 
+'Yazar': 'Osamu Dazai',
+'ISBN:': '9786258401479', 
+'Yayınevi': 'İTHAKİ YAYINLARI', 
+'Çevirmen:': ' Peren Ercan', 
+'Yayın Tarihi:': '28.12.2022', 
+'Orijinal Adı:': 'Ningen Şikkaku (人間失格)', 
+'Dil:': 'TÜRKÇE', 
+'Sayfa Sayısı:': '128', 
+'Cilt Tipi:': 'Karton Kapak', 
+# 'Kağıt Cinsi:': 'Kitap Kağıdı', 
+'Boyut:': '12.5 x 19.5 cm'
+""" 

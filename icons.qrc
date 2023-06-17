@@ -1,0 +1,11 @@
+<!DOCTYPE RCC> 
+<RCC version="1.0">
+    <qresource>
+        <file>static/logo/books.png</file>
+        <file>static/logo/date.png</file>
+        <file>static/logo/settings.png</file>
+        <file>static/logo/themes.png</file>
+        <file>static/logo/users.png</file>
+        <file>static/logo/huda_dark_2.png</file>
+    </qresource>
+</RCC> 
